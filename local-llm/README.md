@@ -54,8 +54,10 @@ bun run local-llm:proxy
 ### 3) Start Claude Haha
 
 ```powershell
-bun --env-file=.env ./src/entrypoints/cli.tsx --bare
+bun --env-file=.env ./src/entrypoints/cli.tsx
 ```
+
+Add `--bare` only if you want minimal mode (no auto MCP/plugins, no CLAUDE.md discovery).
 
 ## Use From Any Project (VSCode/Cursor)
 
@@ -81,7 +83,7 @@ The launcher will:
 
 - auto-start Ollama if not already running
 - auto-start proxy if not already running
-- run Claude Haha in `--bare` mode in your current folder
+- run Claude Haha in your current folder with **plugins + MCP** enabled (same as omitting `--bare`). Use `claude-haha --bare` for the old minimal mode.
 
 ## Doctor Command
 
@@ -122,11 +124,13 @@ ANTHROPIC_DEFAULT_OPUS_MODEL=local-dev-model
 bun run local-llm:proxy
 ```
 
-### 4) Start Claude Haha (safe mode)
+### 4) Start Claude Haha
 
 ```powershell
-bun --env-file=.env ./src/entrypoints/cli.tsx --bare
+bun --env-file=.env ./src/entrypoints/cli.tsx
 ```
+
+(Optional: append `--bare` for a stricter minimal session while testing mock upstream.)
 
 ## Health Checks
 

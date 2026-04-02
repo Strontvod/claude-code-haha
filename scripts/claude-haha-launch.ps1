@@ -79,4 +79,5 @@ Start-OllamaIfNeeded
 Start-ProxyIfNeeded -RepoRoot $RepoRoot
 
 # Run in current working directory so each project is the active workspace.
-& bun --preload="$PreloadFile" --env-file="$EnvFile" "$EntryPoint" --bare @ClaudeArgs
+# No default --bare: enables marketplace plugins, MCP (.mcp.json, user config), LSP, hooks. Pass --bare for minimal mode.
+& bun --preload="$PreloadFile" --env-file="$EnvFile" "$EntryPoint" @ClaudeArgs
