@@ -8,7 +8,12 @@
   },
   "scripts": {
     "claude-haha": "bun run ./bin/claude-haha",
-    "start": "bun run ./bin/claude-haha"
+    "start": "bun run ./bin/claude-haha",
+    "launcher:install": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/install-powershell-launcher.ps1",
+    "launcher:doctor": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/claude-haha-doctor.ps1",
+    "launcher:doctor:fix": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/claude-haha-doctor.ps1 -Fix",
+    "local-llm:proxy": "bun --env-file=.env ./local-llm/proxy/server.ts",
+    "local-llm:upstream:mock": "bun --env-file=.env ./local-llm/upstream/mock-openai-server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sandbox-runtime": "^0.0.44",
