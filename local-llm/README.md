@@ -59,6 +59,10 @@ bun --env-file=.env ./src/entrypoints/cli.tsx
 
 Add `--bare` only if you want minimal mode (no auto MCP/plugins, no CLAUDE.md discovery).
 
+## Config folder (plugins, MCP, sessions)
+
+The Windows launcher and `bin/claude-haha` default to **`%USERPROFILE%\.claude-haha`** via `CLAUDE_CONFIG_DIR`, so local runs stay separate from the official **`\.claude`** install (less bloat, different plugins/MCP). To share one config with Anthropic’s CLI, set `CLAUDE_CONFIG_DIR` to **`%USERPROFILE%\.claude`** in your environment or repo `.env`.
+
 ## Use From Any Project (VSCode/Cursor)
 
 Install a PowerShell launcher once:

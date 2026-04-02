@@ -75,6 +75,16 @@ Remove-Item Env:CLAUDE_CODE_OAUTH_TOKEN -ErrorAction SilentlyContinue
 Remove-Item Env:CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR -ErrorAction SilentlyContinue
 Remove-Item Env:ANTHROPIC_AUTH_TOKEN -ErrorAction SilentlyContinue
 
+# Dedicated config home (plugins, MCP user config, sessions) — avoids sharing bloated %USERPROFILE%\.claude with official CLI.
+# Override: set CLAUDE_CONFIG_DIR in the environment or in repo .env before starting (or set to %USERPROFILE%\.claude to share).
+if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('CLAUDE_CONFIG_DIR', 'Process'))) {
+  $dedicated = Join-Path $env:USERPROFILE '.claude-haha'
+  if (-not (Test-Path -LiteralPath $dedicated)) {
+    New-Item -ItemType Directory -Path $dedicated -Force | Out-Null
+  }
+  $env:CLAUDE_CONFIG_DIR = $dedicated
+}
+
 Start-OllamaIfNeeded
 Start-ProxyIfNeeded -RepoRoot $RepoRoot
 
