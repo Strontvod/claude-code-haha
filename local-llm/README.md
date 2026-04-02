@@ -59,6 +59,12 @@ bun --env-file=.env ./src/entrypoints/cli.tsx
 
 Add `--bare` only if you want minimal mode (no auto MCP/plugins, no CLAUDE.md discovery).
 
+## Fireworks / other Anthropic-compatible APIs (no local proxy)
+
+For **GLM-5**, **Kimi**, MiniMax, OpenRouter, etc., set **`ANTHROPIC_BASE_URL`** to the provider’s inference URL and **`ANTHROPIC_API_KEY`** (or token per their docs). Example **Fireworks GLM-5**: see [Fireworks × Claude Code](https://docs.fireworks.ai/ecosystem/integrations/claude-code) — use model id **`accounts/fireworks/models/glm-5`** and set **`ANTHROPIC_SMALL_FAST_MODEL`** the same as the other tier vars so subagents don’t fall back to Anthropic.
+
+The Windows launcher **only** auto-starts Ollama + `local-llm:proxy` when **`ANTHROPIC_BASE_URL`** points at **`127.0.0.1:4000`** or **`localhost:4000`**.
+
 ## Config folder (plugins, MCP, sessions)
 
 The Windows launcher and `bin/claude-haha` default to **`%USERPROFILE%\.claude-haha`** via `CLAUDE_CONFIG_DIR`, so local runs stay separate from the official **`\.claude`** install (less bloat, different plugins/MCP). To share one config with Anthropic’s CLI, set `CLAUDE_CONFIG_DIR` to **`%USERPROFILE%\.claude`** in your environment or repo `.env`.

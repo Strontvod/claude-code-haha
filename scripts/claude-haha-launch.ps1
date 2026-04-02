@@ -5,6 +5,26 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+function Get-DotEnvValue {
+  param(
+    [string]$Path,
+    [string]$Key
+  )
+  if (-not (Test-Path -LiteralPath $Path)) {
+    return $null
+  }
+  foreach ($line in Get-Content -LiteralPath $Path) {
+    $t = $line.Trim()
+    if ($t -eq '' -or $t.StartsWith('#')) {
+      continue
+    }
+    if ($t -match "^${Key}\s*=\s*(.*)$") {
+      return $matches[1].Trim().Trim('"').Trim("'")
+    }
+  }
+  return $null
+}
+
 function Test-PortListening {
   param([int]$Port)
   $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
@@ -85,8 +105,17 @@ if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('CLAUDE_C
   $env:CLAUDE_CONFIG_DIR = $dedicated
 }
 
-Start-OllamaIfNeeded
-Start-ProxyIfNeeded -RepoRoot $RepoRoot
+# Only start Ollama + local proxy when .env targets the repo proxy (port 4000). Skip for cloud APIs (e.g. Fireworks, MiniMax).
+$baseUrl = Get-DotEnvValue -Path $EnvFile -Key 'ANTHROPIC_BASE_URL'
+$useLocalLlmStack =
+  $baseUrl -and (
+    ($baseUrl -match '127\.0\.0\.1:4000') -or
+    ($baseUrl -match 'localhost:4000')
+  )
+if ($useLocalLlmStack) {
+  Start-OllamaIfNeeded
+  Start-ProxyIfNeeded -RepoRoot $RepoRoot
+}
 
 # Run in current working directory so each project is the active workspace.
 # No default --bare: enables marketplace plugins, MCP (.mcp.json, user config), LSP, hooks. Pass --bare for minimal mode.

@@ -10,7 +10,10 @@ import {
   logEvent,
 } from 'src/services/analytics/index.js'
 import { getModelStrings } from 'src/utils/model/modelStrings.js'
-import { getAPIProvider } from 'src/utils/model/providers.js'
+import {
+  getAPIProvider,
+  isFirstPartyAnthropicBaseUrl,
+} from 'src/utils/model/providers.js'
 import {
   getIsNonInteractiveSession,
   preferThirdPartyAuthentication,
@@ -252,6 +255,12 @@ export function getAnthropicApiKeyWithSource(
   const apiKeyEnv = isRunningOnHomespace()
     ? undefined
     : process.env.ANTHROPIC_API_KEY
+
+  // Fireworks / MiniMax / OpenRouter / local proxies: env API key must work in the
+  // interactive TUI without the api.anthropic.com "approve this key" gate (CC- style).
+  if (apiKeyEnv && !isFirstPartyAnthropicBaseUrl()) {
+    return { key: apiKeyEnv, source: 'ANTHROPIC_API_KEY' }
+  }
 
   // Always check for direct environment variable when the user ran claude --print.
   // This is useful for CI, etc.
