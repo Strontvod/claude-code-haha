@@ -30,6 +30,8 @@ ollama pull qwen3.5:9b
 
 Ollama ships **one efficient (GGUF-class) build per tag**—you pick a single tag like `:9b`, not a long list of quant files. Library: [qwen3.5 on Ollama](https://ollama.com/library/qwen3.5).
 
+The proxy sends **`think: false`** to Ollama by default (faster). Set **`LOCAL_LLM_OLLAMA_THINK=1`** to enable chain-of-thought; when Ollama returns `message.thinking`, the proxy prepends it under a `Thinking:` header so it shows in Claude Code. In the shell: `ollama run qwen3.5:9b --think=false "say ok"` turns thinking off for a one-off run.
+
 Set the same id in `.env` (all four lines should match):
 
 ```env

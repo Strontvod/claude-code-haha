@@ -26,6 +26,12 @@ const UPSTREAM_PROVIDER = (
   process.env.LOCAL_LLM_UPSTREAM_PROVIDER || 'auto'
 ).toLowerCase()
 
+/** Qwen3 / other thinking models default to think=true in Ollama; disable unless explicitly enabled. */
+function ollamaThinkEnabled(): boolean {
+  const v = (process.env.LOCAL_LLM_OLLAMA_THINK || '').toLowerCase().trim()
+  return ['1', 'true', 'yes', 'on'].includes(v)
+}
+
 function textFromContent(
   content: AnthropicMessage['content'] | AnthropicMessagesRequest['system'],
 ): string {
@@ -173,6 +179,8 @@ async function forwardOllama(
     model,
     messages,
     stream: false,
+    // Top-level per Ollama: https://docs.ollama.com/capabilities/thinking
+    think: ollamaThinkEnabled(),
     options: {
       num_predict: maxTokens,
       temperature,
@@ -191,7 +199,15 @@ async function forwardOllama(
     })
   }
   const upstreamJson = JSON.parse(rawText)
-  const assistantText = String(upstreamJson?.message?.content ?? '')
+  const content = String(upstreamJson?.message?.content ?? '')
+  const thinkingRaw = upstreamJson?.message?.thinking
+  const thinking =
+    thinkingRaw !== undefined && thinkingRaw !== null
+      ? String(thinkingRaw).trim()
+      : ''
+  const assistantText = thinking
+    ? `Thinking:\n${thinking}\n\n${content}`
+    : content
   return buildAnthropicResponse(model, assistantText)
 }
 
