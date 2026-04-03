@@ -87,21 +87,25 @@ bun install
 cp .env.example .env
 ```
 
-编辑 `.env`：
+编辑 `.env`（推荐直接使用 Fireworks GLM-5 作为主模型）：
 
 ```env
-# API 认证（二选一）
-ANTHROPIC_API_KEY=sk-xxx          # 标准 API Key（x-api-key 头）
-ANTHROPIC_AUTH_TOKEN=sk-xxx       # Bearer Token（Authorization 头）
+# Claude Haha 始终使用独立配置目录：~/.claude-haha
+# 不要把 CLAUDE_CONFIG_DIR 指向官方全局 ~/.claude
 
-# API 端点（可选，默认 Anthropic 官方）
-ANTHROPIC_BASE_URL=https://api.minimaxi.com/anthropic
+# Fireworks GLM-5（主推荐）
+ANTHROPIC_API_KEY=fw-xxx
+ANTHROPIC_AUTH_TOKEN=
+ANTHROPIC_BASE_URL=https://api.fireworks.ai/inference
+ANTHROPIC_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_SMALL_FAST_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_DEFAULT_SONNET_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_DEFAULT_HAIKU_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_DEFAULT_OPUS_MODEL=accounts/fireworks/models/glm-5
+CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
 
-# 模型配置
-ANTHROPIC_MODEL=MiniMax-M2.7-highspeed
-ANTHROPIC_DEFAULT_SONNET_MODEL=MiniMax-M2.7-highspeed
-ANTHROPIC_DEFAULT_HAIKU_MODEL=MiniMax-M2.7-highspeed
-ANTHROPIC_DEFAULT_OPUS_MODEL=MiniMax-M2.7-highspeed
+# 如果你的中间层仍然报 prompt cache_control 错误，可再加：
+# DISABLE_PROMPT_CACHING=1
 
 # 超时（毫秒）
 API_TIMEOUT_MS=3000000
@@ -135,7 +139,22 @@ echo "explain this code" | ./bin/claude-haha -p
 
 Windows 下启动脚本 `bin/claude-haha` 是 bash 脚本，无法在 cmd / PowerShell 中直接运行。请使用以下方式：
 
-**方式一：PowerShell / cmd 直接调用 Bun（推荐）**
+**方式一：安装 PowerShell 启动器（推荐）**
+
+```powershell
+bun run launcher:install
+claude-haha
+```
+
+启动器会把 Claude Haha 的插件、MCP、sessions、settings 固定隔离在 `~/.claude-haha` 下，不会读取或复用官方全局 `~/.claude`。
+
+可用健康检查：
+
+```powershell
+bun run launcher:doctor
+```
+
+**方式二：PowerShell / cmd 直接调用 Bun**
 
 ```powershell
 # 交互 TUI 模式
@@ -167,9 +186,11 @@ bun --env-file=.env ./src/localRecoveryCli.ts
 | `ANTHROPIC_AUTH_TOKEN` | 二选一 | Auth Token，通过 `Authorization: Bearer` 头发送 |
 | `ANTHROPIC_BASE_URL` | 否 | 自定义 API 端点，默认 Anthropic 官方 |
 | `ANTHROPIC_MODEL` | 否 | 默认模型 |
+| `ANTHROPIC_SMALL_FAST_MODEL` | 否 | 小模型/子 Agent 模型映射 |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | 否 | Sonnet 级别模型映射 |
 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | 否 | Haiku 级别模型映射 |
 | `ANTHROPIC_DEFAULT_OPUS_MODEL` | 否 | Opus 级别模型映射 |
+| `CLAUDE_CONFIG_DIR` | 否 | Claude Haha 独立配置目录，默认 `~/.claude-haha`，禁止指向官方 `~/.claude` |
 | `API_TIMEOUT_MS` | 否 | API 请求超时，默认 600000 (10min) |
 | `DISABLE_TELEMETRY` | 否 | 设为 `1` 禁用遥测 |
 | `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | 否 | 设为 `1` 禁用非必要网络请求 |

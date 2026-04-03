@@ -14,6 +14,7 @@
     "launcher:doctor:fix": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/claude-haha-doctor.ps1 -Fix",
     "local-llm:proxy": "bun --env-file=.env ./local-llm/proxy/server.ts",
     "local-llm:upstream:mock": "bun --env-file=.env ./local-llm/upstream/mock-openai-server.ts",
+    "test:claude-haha-config": "bun test ./src/utils/claudeHahaConfig.test.ts",
     "test:fireworks-compat": "bun run scripts/fireworks-compat-verify.ts"
   },
   "dependencies": {

@@ -87,21 +87,26 @@ Copy the example file and fill in your API key:
 cp .env.example .env
 ```
 
-Edit `.env`:
+Edit `.env` (recommended: use Fireworks GLM-5 as the main model):
 
 ```env
-# API authentication (choose one)
-ANTHROPIC_API_KEY=sk-xxx          # Standard API key via x-api-key header
-ANTHROPIC_AUTH_TOKEN=sk-xxx       # Bearer token via Authorization header
+# Claude Haha always uses an isolated config directory: ~/.claude-haha
+# Never point CLAUDE_CONFIG_DIR at the official global ~/.claude
 
-# API endpoint (optional, defaults to Anthropic)
-ANTHROPIC_BASE_URL=https://api.minimaxi.com/anthropic
+# Fireworks GLM-5 (recommended primary setup)
+ANTHROPIC_API_KEY=fw-xxx
+ANTHROPIC_AUTH_TOKEN=
+ANTHROPIC_BASE_URL=https://api.fireworks.ai/inference
+ANTHROPIC_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_SMALL_FAST_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_DEFAULT_SONNET_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_DEFAULT_HAIKU_MODEL=accounts/fireworks/models/glm-5
+ANTHROPIC_DEFAULT_OPUS_MODEL=accounts/fireworks/models/glm-5
+CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
 
-# Model configuration
-ANTHROPIC_MODEL=MiniMax-M2.7-highspeed
-ANTHROPIC_DEFAULT_SONNET_MODEL=MiniMax-M2.7-highspeed
-ANTHROPIC_DEFAULT_HAIKU_MODEL=MiniMax-M2.7-highspeed
-ANTHROPIC_DEFAULT_OPUS_MODEL=MiniMax-M2.7-highspeed
+# If a gateway in front of Fireworks still rejects prompt cache_control,
+# you can also add:
+# DISABLE_PROMPT_CACHING=1
 
 # Timeout in milliseconds
 API_TIMEOUT_MS=3000000
@@ -135,7 +140,22 @@ echo "explain this code" | ./bin/claude-haha -p
 
 The startup script `bin/claude-haha` is a bash script and cannot run directly in cmd or PowerShell. Use one of the following methods:
 
-**Option 1: PowerShell / cmd — call Bun directly (recommended)**
+**Option 1: Install the PowerShell launcher (recommended)**
+
+```powershell
+bun run launcher:install
+claude-haha
+```
+
+The launcher keeps Claude Haha fully isolated under `~/.claude-haha` for plugins, MCP config, sessions, and settings. It does not read from or reuse the official global `~/.claude`.
+
+Health check:
+
+```powershell
+bun run launcher:doctor
+```
+
+**Option 2: PowerShell / cmd — call Bun directly**
 
 ```powershell
 # Interactive TUI mode
@@ -167,9 +187,11 @@ bun --env-file=.env ./src/localRecoveryCli.ts
 | `ANTHROPIC_AUTH_TOKEN` | One of two | Auth token sent via the `Authorization: Bearer` header |
 | `ANTHROPIC_BASE_URL` | No | Custom API endpoint, defaults to Anthropic |
 | `ANTHROPIC_MODEL` | No | Default model |
+| `ANTHROPIC_SMALL_FAST_MODEL` | No | Small/fast model mapping used by subagents |
 | `ANTHROPIC_DEFAULT_SONNET_MODEL` | No | Sonnet-tier model mapping |
 | `ANTHROPIC_DEFAULT_HAIKU_MODEL` | No | Haiku-tier model mapping |
 | `ANTHROPIC_DEFAULT_OPUS_MODEL` | No | Opus-tier model mapping |
+| `CLAUDE_CONFIG_DIR` | No | Claude Haha config directory, defaults to `~/.claude-haha`, must not point to official `~/.claude` |
 | `API_TIMEOUT_MS` | No | API request timeout, default `600000` (10min) |
 | `DISABLE_TELEMETRY` | No | Set to `1` to disable telemetry |
 | `CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC` | No | Set to `1` to disable non-essential network traffic |

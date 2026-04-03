@@ -25,6 +25,22 @@ function Get-DotEnvValue {
   return $null
 }
 
+function Normalize-PathForComparison {
+  param([string]$PathValue)
+  return ([System.IO.Path]::GetFullPath($PathValue)).TrimEnd('\', '/').ToLowerInvariant()
+}
+
+function Assert-IsolatedClaudeConfigDir {
+  param(
+    [string]$ConfigDir,
+    [string]$HomeDir
+  )
+  $officialDir = Join-Path $HomeDir ".claude"
+  if ((Normalize-PathForComparison $ConfigDir) -eq (Normalize-PathForComparison $officialDir)) {
+    throw "claude-haha must use an isolated config directory under .claude-haha and must not point at the official global .claude directory."
+  }
+}
+
 function Test-PortListening {
   param([int]$Port)
   $conn = Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue
@@ -95,15 +111,20 @@ Remove-Item Env:CLAUDE_CODE_OAUTH_TOKEN -ErrorAction SilentlyContinue
 Remove-Item Env:CLAUDE_CODE_OAUTH_TOKEN_FILE_DESCRIPTOR -ErrorAction SilentlyContinue
 Remove-Item Env:ANTHROPIC_AUTH_TOKEN -ErrorAction SilentlyContinue
 
-# Dedicated config home (plugins, MCP user config, sessions) — avoids sharing bloated %USERPROFILE%\.claude with official CLI.
-# Override: set CLAUDE_CONFIG_DIR in the environment or in repo .env before starting (or set to %USERPROFILE%\.claude to share).
-if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable('CLAUDE_CONFIG_DIR', 'Process'))) {
-  $dedicated = Join-Path $env:USERPROFILE '.claude-haha'
-  if (-not (Test-Path -LiteralPath $dedicated)) {
-    New-Item -ItemType Directory -Path $dedicated -Force | Out-Null
-  }
-  $env:CLAUDE_CONFIG_DIR = $dedicated
+# Dedicated claude-haha config home (plugins, MCP user config, sessions).
+# This launcher intentionally stays isolated from the official global ~/.claude.
+$configuredConfigDir = [Environment]::GetEnvironmentVariable('CLAUDE_CONFIG_DIR', 'Process')
+if ([string]::IsNullOrWhiteSpace($configuredConfigDir)) {
+  $configuredConfigDir = Get-DotEnvValue -Path $EnvFile -Key 'CLAUDE_CONFIG_DIR'
 }
+if ([string]::IsNullOrWhiteSpace($configuredConfigDir)) {
+  $configuredConfigDir = Join-Path $env:USERPROFILE '.claude-haha'
+}
+Assert-IsolatedClaudeConfigDir -ConfigDir $configuredConfigDir -HomeDir $env:USERPROFILE
+if (-not (Test-Path -LiteralPath $configuredConfigDir)) {
+  New-Item -ItemType Directory -Path $configuredConfigDir -Force | Out-Null
+}
+$env:CLAUDE_CONFIG_DIR = $configuredConfigDir
 
 # Only start Ollama + local proxy when .env targets the repo proxy (port 4000). Skip for cloud APIs (e.g. Fireworks, MiniMax).
 $baseUrl = Get-DotEnvValue -Path $EnvFile -Key 'ANTHROPIC_BASE_URL'
