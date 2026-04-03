@@ -27,7 +27,10 @@ import { has1mContext } from './context.js'
 import { isEnvDefinedFalsy, isEnvTruthy } from './envUtils.js'
 import { getCanonicalName } from './model/model.js'
 import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
-import { getAPIProvider } from './model/providers.js'
+import {
+  getAPIProvider,
+  isFirstPartyAnthropicBaseUrl,
+} from './model/providers.js'
 import { getInitialSettings } from './settings/settings.js'
 
 /**
@@ -231,7 +234,25 @@ export function shouldUseGlobalCacheScope(): boolean {
   )
 }
 
+/** Optional betas when using a non–api.anthropic.com ANTHROPIC_BASE_URL. */
+function betasFromAnthropicBetasEnv(): string[] {
+  const raw = process.env.ANTHROPIC_BETAS
+  if (!raw) return []
+  return raw
+    .split(',')
+    .map(_ => _.trim())
+    .filter(Boolean)
+}
+
 export const getAllModelBetas = memoize((model: string): string[] => {
+  // Fireworks / OpenRouter / corp proxies: never send 1P beta strings. The
+  // client still uses getAPIProvider()==='firstParty', so model capability
+  // checks misfire (e.g. glm-5 gets interleaved-thinking betas) and gateways
+  // return opaque 500s (often wrapped as litellm.APIError → Fireworks_ai).
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    return betasFromAnthropicBetasEnv()
+  }
+
   const betaHeaders = []
   const isHaiku = getCanonicalName(model).includes('haiku')
   const provider = getAPIProvider()
@@ -398,6 +419,10 @@ export function getMergedBetas(
   model: string,
   options?: { isAgenticQuery?: boolean },
 ): string[] {
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    return betasFromAnthropicBetasEnv()
+  }
+
   const baseBetas = [...getModelBetas(model)]
 
   // Agentic queries always need claude-code and cli-internal beta headers.

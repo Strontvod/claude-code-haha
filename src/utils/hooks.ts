@@ -883,6 +883,9 @@ async function execCommandHook(
     ...subprocessEnv(),
     CLAUDE_PROJECT_DIR: toHookPath(projectDir),
   }
+  if (isWindows && !isPowerShell) {
+    envVars.MSYS_NO_PATHCONV = '1'
+  }
 
   // Plugin and skill hooks both set CLAUDE_PLUGIN_ROOT (skills use the same
   // name for consistency — skills can migrate to plugins without code changes)

@@ -182,6 +182,13 @@ export function getToolSearchMode(): ToolSearchMode {
     return 'standard'
   }
 
+  // Fireworks / OpenRouter / local Anthropic-compatible: defer_loading +
+  // tool_reference need beta headers many gateways mishandle → opaque 500
+  // (LiteLLM/Fireworks_ai). Always inline full tool defs (still works; larger ctx).
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    return 'standard'
+  }
+
   const value = process.env.ENABLE_TOOL_SEARCH
 
   // Handle auto:N syntax - check edge cases first

@@ -10,7 +10,7 @@ import { getSmallFastModel } from '../utils/model/model.js'
 import { isEssentialTrafficOnly } from '../utils/privacyLevel.js'
 import type { AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS } from './analytics/index.js'
 import { logEvent } from './analytics/index.js'
-import { getAPIMetadata } from './api/claude.js'
+import { getMessagesAPIMetadata } from './api/apiMessagesMetadata.js'
 import { getAnthropicClient } from './api/client.js'
 import {
   processRateLimitHeaders,
@@ -205,13 +205,14 @@ async function makeTestQuery() {
   })
   const messages: MessageParam[] = [{ role: 'user', content: 'quota' }]
   const betas = getModelBetas(model)
+  const meta = getMessagesAPIMetadata()
   // biome-ignore lint/plugin: quota check needs raw response access via asResponse()
   return anthropic.beta.messages
     .create({
       model,
       max_tokens: 1,
       messages,
-      metadata: getAPIMetadata(),
+      ...(meta && { metadata: meta }),
       ...(betas.length > 0 ? { betas } : {}),
     })
     .asResponse()

@@ -18,6 +18,7 @@ import { logError } from '../log.js'
 import { getPlatform } from '../platform.js'
 import { ripgrepCommand } from '../ripgrep.js'
 import { subprocessEnv } from '../subprocessEnv.js'
+import { findGitBashPath } from '../windowsPaths.js'
 import { quote } from './shellQuote.js'
 
 const LITERAL_BACKSLASH = '\\'
@@ -270,15 +271,28 @@ async function getClaudeCodeSnapshotContent(): Promise<string> {
   // Get the appropriate PATH based on platform
   let pathValue = process.env.PATH
   if (getPlatform() === 'windows') {
-    // On Windows with git-bash, read the Cygwin PATH
-    const cygwinResult = await execa('echo $PATH', {
-      shell: true,
-      reject: false,
-    })
-    if (cygwinResult.exitCode === 0 && cygwinResult.stdout) {
-      pathValue = cygwinResult.stdout.trim()
+    // Node's shell: true uses cmd.exe on Windows — `echo $PATH` does not expand
+    // (cmd uses %PATH%), so we used to snapshot a literal "$PATH" and break Git
+    // Bash (py/docker/where missing, bogus export PATH in the snapshot).
+    try {
+      const bashPath = findGitBashPath()
+      const cygwinResult = await execa(bashPath, ['-lc', 'printf %s "$PATH"'], {
+        env: subprocessEnv(),
+        reject: false,
+        timeout: 8000,
+      })
+      const out = cygwinResult.stdout?.trim() ?? ''
+      if (
+        cygwinResult.exitCode === 0 &&
+        out.length > 0 &&
+        out !== '$PATH' &&
+        !out.startsWith('$PATH')
+      ) {
+        pathValue = out
+      }
+    } catch {
+      // keep process.env.PATH
     }
-    // Fall back to process.env.PATH if we can't get Cygwin PATH
   }
 
   const rgIntegration = createRipgrepShellIntegration()

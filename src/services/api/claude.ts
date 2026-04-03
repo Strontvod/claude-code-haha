@@ -61,7 +61,6 @@ import {
   getMergedBetas,
   getModelBetas,
 } from '../../utils/betas.js'
-import { getOrCreateUserID } from '../../utils/config.js'
 import {
   CAPPED_DEFAULT_MAX_TOKENS,
   getModelMaxOutputTokens,
@@ -99,6 +98,7 @@ import {
   extractQuotaStatusFromError,
   extractQuotaStatusFromHeaders,
 } from '../claudeAiLimits.js'
+import { getMessagesAPIMetadata } from './apiMessagesMetadata.js'
 import { getAPIContextManagement } from '../compact/apiMicrocompact.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -327,12 +327,24 @@ export function getExtraBodyParams(betaHeaders?: string[]): JsonObject {
     }
   }
 
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    delete result.anthropic_beta
+    delete result.anti_distillation
+    delete result.anthropic_internal
+  }
+
   return result
 }
 
 export function getPromptCachingEnabled(model: string): boolean {
   // Global disable takes precedence
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING)) return false
+
+  // Fireworks / OpenRouter / local proxies: cache_control + cache_reference
+  // often trigger opaque 500s from provider-side stacks (LiteLLM, etc.).
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    return false
+  }
 
   // Check if we should disable for small/fast model
   if (isEnvTruthy(process.env.DISABLE_PROMPT_CACHING_HAIKU)) {
@@ -500,33 +512,6 @@ export function configureTaskBudgetParams(
   }
 }
 
-export function getAPIMetadata() {
-  // https://docs.google.com/document/d/1dURO9ycXXQCBS0V4Vhl4poDBRgkelFc5t2BNPoEgH5Q/edit?tab=t.0#heading=h.5g7nec5b09w5
-  let extra: JsonObject = {}
-  const extraStr = process.env.CLAUDE_CODE_EXTRA_METADATA
-  if (extraStr) {
-    const parsed = safeParseJSON(extraStr, false)
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      extra = parsed as JsonObject
-    } else {
-      logForDebugging(
-        `CLAUDE_CODE_EXTRA_METADATA env var must be a JSON object, but was given ${extraStr}`,
-        { level: 'error' },
-      )
-    }
-  }
-
-  return {
-    user_id: jsonStringify({
-      ...extra,
-      device_id: getOrCreateUserID(),
-      // Only include OAuth account UUID when actively using OAuth authentication
-      account_uuid: getOauthAccountInfo()?.accountUuid ?? '',
-      session_id: getSessionId(),
-    }),
-  }
-}
-
 export async function verifyApiKey(
   apiKey: string,
   isNonInteractiveSession: boolean,
@@ -551,6 +536,7 @@ export async function verifyApiKey(
           }),
         async anthropic => {
           const messages: MessageParam[] = [{ role: 'user', content: 'test' }]
+          const meta = getMessagesAPIMetadata()
           // biome-ignore lint/plugin: API key verification is intentionally a minimal direct call
           await anthropic.beta.messages.create({
             model,
@@ -558,7 +544,7 @@ export async function verifyApiKey(
             messages,
             temperature: 1,
             ...(betas.length > 0 && { betas }),
-            metadata: getAPIMetadata(),
+            ...(meta && { metadata: meta }),
             ...getExtraBodyParams(),
           })
           return true
@@ -1073,7 +1059,7 @@ async function* queryModel(
   // Always send the advisor beta header when advisor is enabled, so
   // non-agentic queries (compact, side_question, extract_memories, etc.)
   // can parse advisor server_tool_use blocks already in the conversation history.
-  if (isAdvisorEnabled()) {
+  if (isAdvisorEnabled() && isFirstPartyAnthropicBaseUrl()) {
     betas.push(ADVISOR_BETA_HEADER)
   }
 
@@ -1696,6 +1682,8 @@ async function* queryModel(
 
     lastRequestBetas = betasParams
 
+    const messagesMetadata = getMessagesAPIMetadata()
+
     return {
       model: normalizeModelStringForAPI(options.model),
       messages: addCacheBreakpoints(
@@ -1711,7 +1699,7 @@ async function* queryModel(
       tools: allTools,
       tool_choice: options.toolChoice,
       ...(useBetas && { betas: betasParams }),
-      metadata: getAPIMetadata(),
+      ...(messagesMetadata && { metadata: messagesMetadata }),
       max_tokens: maxOutputTokens,
       thinking,
       ...(temperature !== undefined && { temperature }),

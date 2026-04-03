@@ -3,7 +3,10 @@ import type { BetaMessageParam as MessageParam } from '@anthropic-ai/sdk/resourc
 // @aws-sdk/client-bedrock-runtime is imported dynamically in countTokensWithBedrock()
 // to defer ~279KB of AWS SDK code until a Bedrock call is actually made
 import type { CountTokensCommandInput } from '@aws-sdk/client-bedrock-runtime'
-import { getAPIProvider } from 'src/utils/model/providers.js'
+import {
+  getAPIProvider,
+  isFirstPartyAnthropicBaseUrl,
+} from 'src/utils/model/providers.js'
 import { VERTEX_COUNT_TOKENS_ALLOWED_BETAS } from '../constants/betas.js'
 import type { Attachment } from '../utils/attachments.js'
 import { getModelBetas } from '../utils/betas.js'
@@ -23,7 +26,8 @@ import {
 } from '../utils/model/model.js'
 import { jsonStringify } from '../utils/slowOperations.js'
 import { isToolReferenceBlock } from '../utils/toolSearch.js'
-import { getAPIMetadata, getExtraBodyParams } from './api/claude.js'
+import { getExtraBodyParams } from './api/claude.js'
+import { getMessagesAPIMetadata } from './api/apiMessagesMetadata.js'
 import { getAnthropicClient } from './api/client.js'
 import { withTokenCountVCR } from './vcr.js'
 
@@ -298,17 +302,20 @@ export async function countTokensViaHaikuFallback(
       ? betas.filter(b => VERTEX_COUNT_TOKENS_ALLOWED_BETAS.has(b))
       : betas
 
+  const meta = getMessagesAPIMetadata()
+  const countWithThinking =
+    containsThinking && isFirstPartyAnthropicBaseUrl()
   // biome-ignore lint/plugin: token counting needs specialized parameters (thinking, betas) that sideQuery doesn't support
   const response = await anthropic.beta.messages.create({
     model: normalizeModelStringForAPI(model),
-    max_tokens: containsThinking ? TOKEN_COUNT_MAX_TOKENS : 1,
+    max_tokens: countWithThinking ? TOKEN_COUNT_MAX_TOKENS : 1,
     messages: messagesToSend,
     tools: tools.length > 0 ? tools : undefined,
     ...(filteredBetas.length > 0 && { betas: filteredBetas }),
-    metadata: getAPIMetadata(),
+    ...(meta && { metadata: meta }),
     ...getExtraBodyParams(),
-    // Enable thinking if messages contain thinking blocks
-    ...(containsThinking && {
+    // Enable thinking if messages contain thinking blocks (1P only — Fireworks etc. 500 on thinking in count)
+    ...(countWithThinking && {
       thinking: {
         type: 'enabled',
         budget_tokens: TOKEN_COUNT_THINKING_BUDGET,

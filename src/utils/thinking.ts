@@ -4,7 +4,7 @@ import { feature } from 'bun:bundle'
 import { getFeatureValue_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import { getCanonicalName } from './model/model.js'
 import { get3PModelCapabilityOverride } from './model/modelSupportOverrides.js'
-import { getAPIProvider } from './model/providers.js'
+import { getAPIProvider, isFirstPartyAnthropicBaseUrl } from './model/providers.js'
 import { getSettingsWithErrors } from './settings/settings.js'
 
 export type ThinkingConfig =
@@ -92,6 +92,11 @@ export function modelSupportsThinking(model: string): boolean {
   if (supported3P !== undefined) {
     return supported3P
   }
+  // Anthropic-compatible third-party APIs (Fireworks GLM, etc.): the Messages
+  // API shape may exist but extended thinking params break many gateways (500).
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    return false
+  }
   if (process.env.USER_TYPE === 'ant') {
     if (resolveAntModel(model.toLowerCase())) {
       return true
@@ -114,6 +119,9 @@ export function modelSupportsAdaptiveThinking(model: string): boolean {
   const supported3P = get3PModelCapabilityOverride(model, 'adaptive_thinking')
   if (supported3P !== undefined) {
     return supported3P
+  }
+  if (!isFirstPartyAnthropicBaseUrl()) {
+    return false
   }
   const canonical = getCanonicalName(model)
   // Supported by a subset of Claude 4 models

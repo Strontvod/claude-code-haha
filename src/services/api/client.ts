@@ -102,18 +102,24 @@ export async function getAnthropicClient({
   const remoteSessionId = process.env.CLAUDE_CODE_REMOTE_SESSION_ID
   const clientApp = process.env.CLAUDE_AGENT_SDK_CLIENT_APP
   const customHeaders = getCustomHeaders()
-  const defaultHeaders: { [key: string]: string } = {
-    'x-app': 'cli',
-    'User-Agent': getUserAgent(),
-    'X-Claude-Code-Session-Id': getSessionId(),
-    ...customHeaders,
-    ...(containerId ? { 'x-claude-remote-container-id': containerId } : {}),
-    ...(remoteSessionId
-      ? { 'x-claude-remote-session-id': remoteSessionId }
-      : {}),
-    // SDK consumers can identify their app/library for backend analytics
-    ...(clientApp ? { 'x-client-app': clientApp } : {}),
-  }
+  // Anthropic-internal headers are unnecessary for Fireworks/OpenRouter/etc. and
+  // some gateways reject or mishandle them.
+  const defaultHeaders: { [key: string]: string } = isFirstPartyAnthropicBaseUrl()
+    ? {
+        'x-app': 'cli',
+        'User-Agent': getUserAgent(),
+        'X-Claude-Code-Session-Id': getSessionId(),
+        ...customHeaders,
+        ...(containerId ? { 'x-claude-remote-container-id': containerId } : {}),
+        ...(remoteSessionId
+          ? { 'x-claude-remote-session-id': remoteSessionId }
+          : {}),
+        ...(clientApp ? { 'x-client-app': clientApp } : {}),
+      }
+    : {
+        'User-Agent': getUserAgent(),
+        ...customHeaders,
+      }
 
   // Log API client configuration for HFI debugging
   logForDebugging(

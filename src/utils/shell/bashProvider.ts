@@ -232,6 +232,11 @@ export async function createBashShellProvider(
       if (claudeTmuxEnv) {
         env.TMUX = claudeTmuxEnv
       }
+      if (getPlatform() === 'windows') {
+        // Git Bash rewrites args like `/app` when invoking Win32 EXEs (docker.exe)
+        // into paths under the Git install dir — breaks `docker run -w /app`.
+        env.MSYS_NO_PATHCONV = '1'
+      }
       if (currentSandboxTmpDir) {
         let posixTmpDir = currentSandboxTmpDir
         if (getPlatform() === 'windows') {
