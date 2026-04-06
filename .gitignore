@@ -1,4 +1,5 @@
 .env
 .env.*
 !.env.example
+.firecrawl/
 node_modules
