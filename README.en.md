@@ -87,26 +87,36 @@ Copy the example file and fill in your API key:
 cp .env.example .env
 ```
 
-Edit `.env` (recommended: use Fireworks GLM-5 as the main model):
+Edit `.env` (recommended: use OpenRouter `qwen/qwen3.6-plus:free` as the main model):
 
 ```env
 # Claude Haha always uses an isolated config directory: ~/.claude-haha
 # Never point CLAUDE_CONFIG_DIR at the official global ~/.claude
 
-# Fireworks GLM-5 (recommended primary setup)
-ANTHROPIC_API_KEY=fw-xxx
-ANTHROPIC_AUTH_TOKEN=
-ANTHROPIC_BASE_URL=https://api.fireworks.ai/inference
-ANTHROPIC_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_SMALL_FAST_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_DEFAULT_SONNET_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_DEFAULT_HAIKU_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_DEFAULT_OPUS_MODEL=accounts/fireworks/models/glm-5
+# OpenRouter qwen/qwen3.6-plus:free (recommended primary setup)
+ANTHROPIC_API_KEY=
+ANTHROPIC_AUTH_TOKEN=or-xxx
+ANTHROPIC_BASE_URL=https://openrouter.ai/api
+ANTHROPIC_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_SMALL_FAST_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_DEFAULT_SONNET_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_DEFAULT_HAIKU_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_DEFAULT_OPUS_MODEL=qwen/qwen3.6-plus:free
 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
 
-# If a gateway in front of Fireworks still rejects prompt cache_control,
+# If your gateway still rejects prompt cache_control,
 # you can also add:
 # DISABLE_PROMPT_CACHING=1
+
+# Manual alternative: Fireworks GLM-5
+# ANTHROPIC_API_KEY=fw-xxx
+# ANTHROPIC_AUTH_TOKEN=
+# ANTHROPIC_BASE_URL=https://api.fireworks.ai/inference
+# ANTHROPIC_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_SMALL_FAST_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_DEFAULT_SONNET_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_DEFAULT_HAIKU_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_DEFAULT_OPUS_MODEL=accounts/fireworks/models/glm-5
 
 # Timeout in milliseconds
 API_TIMEOUT_MS=3000000
@@ -149,6 +159,14 @@ claude-haha
 
 The launcher keeps Claude Haha fully isolated under `~/.claude-haha` for plugins, MCP config, sessions, and settings. It does not read from or reuse the official global `~/.claude`.
 
+Local `/ultraplan`:
+
+```text
+/ultraplan <request>
+```
+
+This starts a stronger local planning flow inside the current `claude-haha` session. It stays fully local, writes/refines the session plan, and does not jump to Claude Code on the web or depend on Anthropic CCR sessions.
+
 Health check:
 
 ```powershell
@@ -183,8 +201,8 @@ bun --env-file=.env ./src/localRecoveryCli.ts
 
 | Variable | Required | Description |
 |------|------|------|
-| `ANTHROPIC_API_KEY` | One of two | API key sent via the `x-api-key` header |
-| `ANTHROPIC_AUTH_TOKEN` | One of two | Auth token sent via the `Authorization: Bearer` header |
+| `ANTHROPIC_API_KEY` | One of two | API key sent via the `x-api-key` header. Keep empty for the default OpenRouter setup. |
+| `ANTHROPIC_AUTH_TOKEN` | One of two | Auth token sent via the `Authorization: Bearer` header. Recommended for OpenRouter. |
 | `ANTHROPIC_BASE_URL` | No | Custom API endpoint, defaults to Anthropic |
 | `ANTHROPIC_MODEL` | No | Default model |
 | `ANTHROPIC_SMALL_FAST_MODEL` | No | Small/fast model mapping used by subagents |

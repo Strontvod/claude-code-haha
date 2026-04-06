@@ -89,6 +89,9 @@ function Get-ProviderMode([string]$BaseUrl) {
   if ([string]::IsNullOrWhiteSpace($BaseUrl)) {
     return "anthropic-default"
   }
+  if ($BaseUrl -match '^https://openrouter\.ai/api(?:/|$)') {
+    return "openrouter"
+  }
   if ($BaseUrl -match '^https://api\.fireworks\.ai(?:/|$)') {
     return "fireworks"
   }
@@ -98,6 +101,9 @@ function Get-ProviderMode([string]$BaseUrl) {
   try {
     $uri = [System.Uri]$BaseUrl
     $host = $uri.Host.ToLowerInvariant()
+    if ($host -eq "openrouter.ai") {
+      return "openrouter"
+    }
     if ($host -eq "api.fireworks.ai") {
       return "fireworks"
     }
@@ -169,6 +175,76 @@ if ([string]::IsNullOrWhiteSpace($model)) {
 }
 
 switch ($providerMode) {
+  "openrouter" {
+    $expectedModel = "qwen/qwen3.6-plus:free"
+    $expectedBase = "https://openrouter.ai/api"
+
+    if ($anthropicBase -eq $expectedBase) {
+      Pass "ANTHROPIC_BASE_URL is OpenRouter Anthropic-compatible endpoint"
+    } else {
+      Fail "ANTHROPIC_BASE_URL must be $expectedBase for the default OpenRouter setup"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($authToken)) {
+      Fail "ANTHROPIC_AUTH_TOKEN is required for OpenRouter"
+    } else {
+      Pass "ANTHROPIC_AUTH_TOKEN is set for OpenRouter"
+    }
+
+    if ([string]::IsNullOrWhiteSpace($apiKey)) {
+      Pass "ANTHROPIC_API_KEY is empty for the default OpenRouter bearer-token setup"
+    } else {
+      Warn "ANTHROPIC_API_KEY is set; the default OpenRouter setup prefers ANTHROPIC_AUTH_TOKEN"
+    }
+
+    $modelChecks = @(
+      @{ Name = "ANTHROPIC_MODEL"; Value = $model },
+      @{ Name = "ANTHROPIC_SMALL_FAST_MODEL"; Value = $smallFastModel },
+      @{ Name = "ANTHROPIC_DEFAULT_SONNET_MODEL"; Value = $defaultSonnetModel },
+      @{ Name = "ANTHROPIC_DEFAULT_HAIKU_MODEL"; Value = $defaultHaikuModel },
+      @{ Name = "ANTHROPIC_DEFAULT_OPUS_MODEL"; Value = $defaultOpusModel }
+    )
+    foreach ($check in $modelChecks) {
+      if ($check.Value -eq $expectedModel) {
+        Pass "$($check.Name) is pinned to qwen/qwen3.6-plus:free"
+      } else {
+        Fail "$($check.Name) must be $expectedModel"
+      }
+    }
+
+    if ($envMap["CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS"] -eq "1") {
+      Pass "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1"
+    } else {
+      Warn "CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS is not 1; Anthropic-only betas may break OpenRouter compatibility"
+    }
+
+    if ($failCount -eq 0) {
+      try {
+        $headers = @{
+          "Authorization" = "Bearer $authToken"
+          "anthropic-version" = "2023-06-01"
+          "content-type" = "application/json"
+        }
+        $body = @{
+          model = $expectedModel
+          max_tokens = 16
+          messages = @(@{ role = "user"; content = "Reply with DOCTOR_OK only" })
+        } | ConvertTo-Json -Depth 8
+        $resp = Invoke-RestMethod -Method Post -Uri (Get-MessagesEndpoint $anthropicBase) -Headers $headers -Body $body -TimeoutSec 90
+        $text = Get-MessageText $resp
+        if (-not [string]::IsNullOrWhiteSpace($text)) {
+          Pass "OpenRouter qwen/qwen3.6-plus:free inference call succeeded"
+          if ($text -notmatch "DOCTOR_OK") {
+            Warn "OpenRouter qwen/qwen3.6-plus:free returned non-empty text but did not echo DOCTOR_OK exactly"
+          }
+        } else {
+          Fail "OpenRouter qwen/qwen3.6-plus:free inference returned an empty text response"
+        }
+      } catch {
+        Fail "OpenRouter qwen/qwen3.6-plus:free inference failed: $($_.Exception.Message)"
+      }
+    }
+  }
   "fireworks" {
     $expectedModel = "accounts/fireworks/models/glm-5"
     $expectedBase = "https://api.fireworks.ai/inference"
@@ -349,7 +425,7 @@ switch ($providerMode) {
     }
   }
   default {
-    Warn "Doctor has full checks for Fireworks GLM-5 and the local proxy stack. Current provider mode '$providerMode' only receives generic validation."
+    Warn "Doctor has full checks for OpenRouter, Fireworks GLM-5, and the local proxy stack. Current provider mode '$providerMode' only receives generic validation."
     if ([string]::IsNullOrWhiteSpace($anthropicBase)) {
       Pass "ANTHROPIC_BASE_URL is unset (default Anthropic endpoint)"
     } else {

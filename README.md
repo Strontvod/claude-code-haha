@@ -87,25 +87,35 @@ bun install
 cp .env.example .env
 ```
 
-编辑 `.env`（推荐直接使用 Fireworks GLM-5 作为主模型）：
+编辑 `.env`（推荐直接使用 OpenRouter 的 `qwen/qwen3.6-plus:free` 作为主模型）：
 
 ```env
 # Claude Haha 始终使用独立配置目录：~/.claude-haha
 # 不要把 CLAUDE_CONFIG_DIR 指向官方全局 ~/.claude
 
-# Fireworks GLM-5（主推荐）
-ANTHROPIC_API_KEY=fw-xxx
-ANTHROPIC_AUTH_TOKEN=
-ANTHROPIC_BASE_URL=https://api.fireworks.ai/inference
-ANTHROPIC_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_SMALL_FAST_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_DEFAULT_SONNET_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_DEFAULT_HAIKU_MODEL=accounts/fireworks/models/glm-5
-ANTHROPIC_DEFAULT_OPUS_MODEL=accounts/fireworks/models/glm-5
+# OpenRouter qwen/qwen3.6-plus:free（主推荐）
+ANTHROPIC_API_KEY=
+ANTHROPIC_AUTH_TOKEN=or-xxx
+ANTHROPIC_BASE_URL=https://openrouter.ai/api
+ANTHROPIC_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_SMALL_FAST_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_DEFAULT_SONNET_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_DEFAULT_HAIKU_MODEL=qwen/qwen3.6-plus:free
+ANTHROPIC_DEFAULT_OPUS_MODEL=qwen/qwen3.6-plus:free
 CLAUDE_CODE_DISABLE_EXPERIMENTAL_BETAS=1
 
 # 如果你的中间层仍然报 prompt cache_control 错误，可再加：
 # DISABLE_PROMPT_CACHING=1
+
+# 手动备选：Fireworks GLM-5
+# ANTHROPIC_API_KEY=fw-xxx
+# ANTHROPIC_AUTH_TOKEN=
+# ANTHROPIC_BASE_URL=https://api.fireworks.ai/inference
+# ANTHROPIC_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_SMALL_FAST_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_DEFAULT_SONNET_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_DEFAULT_HAIKU_MODEL=accounts/fireworks/models/glm-5
+# ANTHROPIC_DEFAULT_OPUS_MODEL=accounts/fireworks/models/glm-5
 
 # 超时（毫秒）
 API_TIMEOUT_MS=3000000
@@ -148,6 +158,14 @@ claude-haha
 
 启动器会把 Claude Haha 的插件、MCP、sessions、settings 固定隔离在 `~/.claude-haha` 下，不会读取或复用官方全局 `~/.claude`。
 
+本地 `/ultraplan`：
+
+```text
+/ultraplan <需求描述>
+```
+
+它会在当前 `claude-haha` 会话里进入更强的本地规划流程，只做本地探索与计划编写，不会跳转到 Claude Code on the web，也不依赖官方远程 CCR 会话。
+
 可用健康检查：
 
 ```powershell
@@ -182,8 +200,8 @@ bun --env-file=.env ./src/localRecoveryCli.ts
 
 | 变量 | 必填 | 说明 |
 |------|------|------|
-| `ANTHROPIC_API_KEY` | 二选一 | API Key，通过 `x-api-key` 头发送 |
-| `ANTHROPIC_AUTH_TOKEN` | 二选一 | Auth Token，通过 `Authorization: Bearer` 头发送 |
+| `ANTHROPIC_API_KEY` | 二选一 | API Key，通过 `x-api-key` 头发送。默认 OpenRouter 配置下请留空。 |
+| `ANTHROPIC_AUTH_TOKEN` | 二选一 | Auth Token，通过 `Authorization: Bearer` 头发送。OpenRouter 推荐使用该方式。 |
 | `ANTHROPIC_BASE_URL` | 否 | 自定义 API 端点，默认 Anthropic 官方 |
 | `ANTHROPIC_MODEL` | 否 | 默认模型 |
 | `ANTHROPIC_SMALL_FAST_MODEL` | 否 | 小模型/子 Agent 模型映射 |

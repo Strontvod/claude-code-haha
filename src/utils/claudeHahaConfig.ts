@@ -3,6 +3,7 @@ import path from 'node:path'
 export type ClaudeHahaProviderMode =
   | 'anthropic-default'
   | 'fireworks'
+  | 'openrouter'
   | 'local-proxy'
   | 'third-party-compatible'
 
@@ -49,6 +50,10 @@ export function detectClaudeHahaProviderMode(env: {
 
     if (host === 'api.fireworks.ai') {
       return 'fireworks'
+    }
+
+    if (host === 'openrouter.ai') {
+      return 'openrouter'
     }
 
     if (

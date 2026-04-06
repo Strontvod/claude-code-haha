@@ -30,6 +30,14 @@ describe('claudeHahaConfig', () => {
     ).toBe('fireworks')
   })
 
+  test('detects the OpenRouter provider mode from the base url', () => {
+    expect(
+      detectClaudeHahaProviderMode({
+        ANTHROPIC_BASE_URL: 'https://openrouter.ai/api',
+      }),
+    ).toBe('openrouter')
+  })
+
   test('detects the local proxy provider mode from the base url', () => {
     expect(
       detectClaudeHahaProviderMode({
